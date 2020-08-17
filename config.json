@@ -1,0 +1,18 @@
+{
+  "detection_notice": true,
+  "confirmation": true,
+  "ignore_closed_lid": true,
+  "disabled": false,
+  "use_cnn": false,
+  "certainty_threshold": 0.45,
+  "timeout": 1,
+  "dark_threshold": 50,
+  "ignore_ssh": false,
+  "add_timeout": 3,
+  "number_of_threads": 8,
+  "auto_find_camera": false,
+  "camera_index": 0,
+  "suppress_unknown": true,
+  "auto_find_editor": false,
+  "editor": "gedit"
+}
