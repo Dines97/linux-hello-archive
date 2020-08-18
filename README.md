@@ -4,6 +4,19 @@ Linux Hello provides facial recognition based authentication for Linux. Use your
 
 Using the central authentication system (PAM), this works everywhere you would otherwise need your password: Login, lock screen, sudo, su, etc.
 
+## Installation
+#### Ubuntu (20.04)
+```
+```
+#### Arch
+```
+```
+#### openSuse
+```
+```
+### Fedora
+```
+```
 ## Building
 ### Dependencies
 #### Ubuntu (20.04)
@@ -22,7 +35,7 @@ sudo apt install g++ libpam0g-dev libopencv-dev libdlib-dev libboost-program-opt
 ```
 
 ```
-### Installation
+### Compilation
 ```
 git clone https://github.com/Dines97/Linux-Hello.git
 cd Linux-Hello
