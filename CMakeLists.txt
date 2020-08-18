@@ -19,7 +19,6 @@ target_link_libraries(linux-hello pam ${OpenCV_LIBS} dlib::dlib Boost::program_o
 
 install(TARGETS pam_linux_hello DESTINATION /lib/x86_64-linux-gnu/security/)
 install(FILES linux_hello DESTINATION /usr/share/pam-configs/)
-install(FILES linux_hello.cfg DESTINATION /etc/linux-hello/)
 install(FILES config.json DESTINATION /etc/linux-hello/)
 install(DIRECTORY data DESTINATION /etc/linux-hello)
 install(DIRECTORY DESTINATION /etc/linux-hello/models)
