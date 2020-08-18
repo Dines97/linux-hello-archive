@@ -24,3 +24,14 @@ install(DIRECTORY data DESTINATION /etc/linux-hello)
 install(DIRECTORY DESTINATION /etc/linux-hello/models)
 install(TARGETS linux-hello DESTINATION /usr/bin/)
 
+set(CPACK_PACKAGE_NAME "linux-hello")
+set(CPACK_PACKAGE_VERSION 0.1.0)
+set(CPACK_PACKAGE_VERSION_MAJOR 0)
+set(CPACK_PACKAGE_VERSION_MINOR 1)
+set(CPACK_PACKAGE_VERSION_PATCH 0)
+
+#Debian
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Denis Kaynar")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libdlib19, libboost-program-options1.71.0, libopencv-highgui4.2")
+
+include(CPack)
