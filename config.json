@@ -14,5 +14,7 @@
   "camera_index": 0,
   "suppress_unknown": true,
   "auto_find_editor": false,
-  "editor": "gedit"
+  "editor": "gedit",
+  "add_num_jitters" : 10,
+  "compare_num_jitters" : 3
 }

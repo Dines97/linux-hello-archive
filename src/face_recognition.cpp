@@ -71,7 +71,8 @@ int face_recognition::add(const std::string &username) {
 
 		s.face_location = s.face_locations[0];
 		s.face_landmark = shapePredictor(s.dlib_image, s.face_location);
-		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, 1);
+		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
+																		 settings["add_num_jitters"].get<int>());
 
 		total_face_encoding += s.face_encoding;
 		valid_encodings++;
@@ -183,26 +184,33 @@ int face_recognition::compare(const std::string &username) {
 		return PAM_AUTH_ERR;
 	}
 
+	double best_certainty;
+	bool first = true;
+
 	for (auto &fl: s.face_locations) {
 
 		s.face_landmark = shapePredictor(s.dlib_image, fl);
-		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, 1);
+		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, settings["compare_num_jitters"].get<int>());
 
 		int i = 0;
 
 		for (auto &enc: encodings) {
 			double certainty = euclidean_distance(enc - s.face_encoding);
+			if (first || certainty < best_certainty) {
+				best_certainty = certainty;
+				first = false;
+			}
 
 			if (certainty_threshold > certainty) {
 				if (settings["confirmation"].get<bool>()) {
-					std::cout << '\r' << "Identified face as " << username << "          " << std::endl;
+					std::cout << '\r' << "Identified face as " << username << " (" << certainty << "<" << certainty_threshold << ")" << "          " << std::endl;
 				}
 				return PAM_SUCCESS;
 			}
 		}
 	}
 
-	std::cout << '\r' << "User face unrecognized          " << std::endl;
+	std::cout << '\r' << "User face unrecognized (" << best_certainty << ">" << certainty_threshold << ")" << "          " << std::endl;
 
 	return PAM_SYSTEM_ERR;
 }
