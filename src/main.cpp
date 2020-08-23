@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 	namespace po = boost::program_options;
 	po::options_description desc("Allowed options");
 	desc.add_options()
+			("init", "Download required data files")
 			("add", "Add a new face model for an user.")
 			("clear", "Remove all face models for an user.")
 			("config", "Open config file in text editor")
@@ -169,6 +170,12 @@ int main(int argc, char *argv[]) {
 		faceRecognition.test();
 	} else if (vm.count("help")) {
 		std::cout << desc;
+	} else if (vm.count("init")) {
+		if (euid != 0) {
+			std::cout << "Please run this command as root" << std::endl;
+			return 1;
+		}
+		system("bash /etc/linux-hello/data/install.sh");
 	} else {
 		std::cout << desc;
 	}
