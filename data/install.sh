@@ -2,6 +2,8 @@
 
 echo "Downloading 3 required data files..."
 
+cd "$(dirname "$0")"
+
 # Check if wget is installed
 if hash wget;then
 	# Check if wget supports the option to only show the progress bar
