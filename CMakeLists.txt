@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 find_package(PAM REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
