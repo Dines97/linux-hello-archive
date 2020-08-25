@@ -1,5 +1,8 @@
+#include <cereal/archives/binary.hpp>
+#include "User.h"
 #include "face_recognition.h"
 
+//TODO: Rethink variable name in all project especially in this file
 face_recognition::face_recognition(const nlohmann::json &settings) : faceRecognitionModelV1(
 		"/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
 
@@ -21,9 +24,11 @@ int face_recognition::add(const std::string &username) {
 	std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
 	std::fstream f_models;
 	f_models.open(model_name, std::ios::in);
+	User user;
 
 	if (f_models.good()) {
-		f_models >> j_encodings;
+		cereal::BinaryInputArchive cereal_input(f_models);
+		cereal_input(CEREAL_NVP(user));
 	}
 
 	std::string label;
@@ -96,23 +101,30 @@ int face_recognition::add(const std::string &username) {
 
 	total_face_encoding /= valid_encodings;
 
-	nlohmann::json j_encoding, data;
+	Encoding encoding;
+	encoding.camera_index = settings["camera_index"];
+	encoding.data = total_face_encoding;
 
-	for (int i = 0; i < total_face_encoding.nr(); i++) {
-		data.push_back(total_face_encoding(i, 0));
-	}
+	UserEncoding user_encoding;
+	user_encoding.unix_time = std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch()).count();
+	user_encoding.id = user.user_encodings.size();
+	user_encoding.label = label;
+	user_encoding.encodings.push_back(encoding);
 
-	j_encoding["time"] = std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch()).count();
-	j_encoding["label"] = label;
-	j_encoding["id"] = j_encodings.size();
-	j_encoding["data"] = data;
-	j_encodings.push_back(j_encoding);
+	user.user_name = username;
+	user.user_encodings.push_back(user_encoding);
 
+	//TODO: Check is flush required if close called after it
+	f_models.flush();
 	f_models.close();
 	f_models.clear();
 	f_models.open(model_name, std::ios::out | std::ios::trunc);
 
-	f_models << std::setw(4) << j_encodings << std::endl;
+	if (f_models.good()) {
+		cereal::BinaryOutputArchive cereal_output(f_models);
+		cereal_output(CEREAL_NVP(user));
+	}
+
 	f_models.flush();
 	f_models.close();
 
@@ -126,12 +138,14 @@ int face_recognition::compare(const std::string &username) {
 
 	std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
 	std::ifstream input(model_name);
+	User user;
 
 	if (input.good()) {
-		input >> j_encodings;
+		cereal::BinaryInputArchive cereal_input(input);
+		cereal_input(CEREAL_NVP(user));
 	}
 
-	if (input.bad() || j_encodings.empty()) {
+	if (input.bad() || user.user_encodings.empty()) {
 		std::cout << "No face model known" << std::endl << "Please add face model with:" << std::endl
 				  << "\tsudo linux-hello --add" << std::endl;
 		return PAM_USER_UNKNOWN;
@@ -139,15 +153,6 @@ int face_recognition::compare(const std::string &username) {
 
 	if (settings["detection_notice"]) {
 		std::cout << "Attempting face detection" << std::flush;
-	}
-
-	std::vector<dlib::matrix<double, 128, 1>> encodings;
-	for (auto &j_encoding : j_encodings) {
-		dlib::matrix<double, 128, 1> new_encoding;
-		for (int j = 0; j < j_encoding["data"].size(); j++) {
-			new_encoding(j, 0) = j_encoding["data"][j].get<double>();
-		}
-		encodings.push_back(new_encoding);
 	}
 
 	double certainty_threshold = settings["certainty_threshold"];
@@ -186,6 +191,7 @@ int face_recognition::compare(const std::string &username) {
 
 	double best_certainty;
 	bool first = true;
+	int best_certainty_index;
 
 	for (auto &fl: s.face_locations) {
 
@@ -193,20 +199,23 @@ int face_recognition::compare(const std::string &username) {
 		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, settings["compare_num_jitters"].get<int>());
 
 		int i = 0;
-
-		for (auto &enc: encodings) {
-			double certainty = euclidean_distance(enc - s.face_encoding);
+		for (auto &enc: user.user_encodings) {
+			double certainty = euclidean_distance(enc.encodings[0].data - s.face_encoding);
 			if (first || certainty < best_certainty) {
 				best_certainty = certainty;
 				first = false;
+				best_certainty_index = i;
 			}
 
 			if (certainty_threshold > certainty) {
 				if (settings["confirmation"].get<bool>()) {
-					std::cout << '\r' << "Identified face as " << username << " (" << certainty << "<" << certainty_threshold << ")" << "          " << std::endl;
+					std::cout << '\r' << "Identified face as " << username << "          " << std::endl;
+					std::cout << "Wining model id:" << user.user_encodings[best_certainty_index].id
+							  << ", label:\"" << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold << ")" << "          " << std::endl;
 				}
 				return PAM_SUCCESS;
 			}
+			i++;
 		}
 	}
 

@@ -21,7 +21,7 @@ Using the central authentication system (PAM), this works everywhere you would o
 ### Dependencies
 #### Ubuntu (20.04)
 ```
-sudo apt install g++ libpam0g-dev libopencv-dev libdlib-dev libboost-program-options-dev nlohmann-json3-dev libatlas-base-dev libsqlite3-dev
+sudo apt install g++ libpam0g-dev libopencv-dev libdlib-dev libboost-program-options-dev nlohmann-json3-dev libatlas-base-dev libsqlite3-dev libcereal-dev
 ```
 #### Arch
 ```

@@ -24,7 +24,7 @@ class face_recognition {
 	cv::VideoCapture *capture;
 	Darkness *darkness;
 
-	nlohmann::json j_encodings, settings;
+	nlohmann::json settings;
 
 	std::vector<snapshot> snapshots;
 

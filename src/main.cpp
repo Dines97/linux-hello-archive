@@ -3,8 +3,11 @@
 #include <security/pam_modules.h>
 #include <nlohmann/json.hpp>
 #include <boost/program_options.hpp>
+#include <cereal/archives/binary.hpp>
+#include <z3.h>
 
 #include "face_recognition.h"
+#include "User.h"
 
 void sigabrt(int signum) {
 	std::cout << "Abort!!!" << std::endl;
@@ -70,15 +73,22 @@ int main(int argc, char *argv[]) {
 		face_recognition faceRecognition(settings);
 		faceRecognition.add(username);
 	} else if (vm.count("clear")) {
+		if (euid != 0) {
+			std::cout << "Please run this command as root" << std::endl;
+			return 1;
+		}
 		std::string model_file_name = "/etc/linux-hello/models/" + username + ".dat";
 		std::remove(model_file_name.c_str());
 	} else if (vm.count("config")) {
+		if (euid != 0) {
+			std::cout << "Please run this command as root" << std::endl;
+			return 1;
+		}
 		std::string editor = settings["editor"].get<std::string>() + " /etc/linux-hello/config.json";
 		int status = system(editor.c_str());
 	} else if (vm.count("enable")) {
 		if (euid != 0) {
-			std::cout << "Please run this command as root:" << std::endl << "\t sudo linux-hello -e"
-					  << std::endl;
+			std::cout << "Please run this command as root" << std::endl;
 			return 1;
 		}
 
@@ -93,8 +103,7 @@ int main(int argc, char *argv[]) {
 
 	} else if (vm.count("disable")) {
 		if (euid != 0) {
-			std::cout << "Please run this command as root:" << std::endl << "\t sudo linux-hello -d"
-					  << std::endl;
+			std::cout << "Please run this command as root" << std::endl;
 			return 1;
 		}
 
@@ -108,16 +117,22 @@ int main(int argc, char *argv[]) {
 		std::cout << "Linux Hello has been disabled" << std::endl;
 
 	} else if (vm.count("list")) {
+		if (euid != 0) {
+			std::cout << "Please run this command as root" << std::endl;
+			return 1;
+		}
 
 		std::string models_file_name = "/etc/linux-hello/models/" + username + ".dat";
-		nlohmann::json models;
 		std::ifstream f_models(models_file_name);
+		User user;
 
 		if (f_models.good()) {
-			f_models >> models;
-			f_models.close();
+			{
+				cereal::BinaryInputArchive input(f_models);
+				input(user);
+			}
 
-			if (models.empty()) {
+			if (user.user_encodings.empty()) {
 				std::cout << "No face model known for the user " << username << " please run:" << std::endl;
 				std::cout << "\tsudo howdy --add" << std::endl;
 				return 0;
@@ -126,10 +141,10 @@ int main(int argc, char *argv[]) {
 			std::cout << "Known face models for " << username << ":" << std::endl << std::endl;
 			std::cout << "\tID\tDate\t\t\t\tLabel" << std::endl;
 
-			for (auto m: models) {
-				long time = m["time"];
-				std::cout << "\t" << m["id"] << "\t" << std::put_time(std::localtime(&time), "%c") << "\t"
-						  << m["label"].get<std::string>() << std::endl;
+			for (auto m: user.user_encodings) {
+				long time = m.unix_time;
+				std::cout << "\t" << m.id << "\t" << std::put_time(std::localtime(&time), "%c") << "\t"
+						  << m.label << std::endl;
 			}
 			std::cout << std::endl;
 
@@ -140,14 +155,21 @@ int main(int argc, char *argv[]) {
 		}
 
 	} else if (vm.count("remove")) {
+		if (euid != 0) {
+			std::cout << "Please run this command as root" << std::endl;
+			return 1;
+		}
 
 		std::string models_file_name = "/etc/linux-hello/models/" + username + ".dat";
 		std::fstream f_models;
 		f_models.open(models_file_name, std::ios::in);
-		nlohmann::json models;
+		User user;
 
 		if (f_models.good()) {
-			f_models >> models;
+			{
+				cereal::BinaryInputArchive input(f_models);
+				input(user);
+			}
 
 			f_models.close();
 			f_models.clear();
@@ -155,13 +177,17 @@ int main(int argc, char *argv[]) {
 
 			int i = 0;
 			int id = vm["remove"].as<int>();
-			for (auto &m:models) {
-				if (m["id"] == id) break;
+			for (auto &m:user.user_encodings) {
+				if (m.id == id) break;
 				i++;
 			}
-			models.erase(i);
+			user.user_encodings.erase(user.user_encodings.begin() + i);
 
-			f_models << std::setw(4) << models << std::endl;
+			{
+				cereal::BinaryOutputArchive output(f_models);
+				output(user);
+			}
+
 			f_models.flush();
 			f_models.close();
 		}
