@@ -63,6 +63,9 @@ int main(int argc, char *argv[]) {
 		}
 
 		face_recognition faceRecognition(settings);
+		if (faceRecognition.get_camera_count() == 0) {
+			std::cout << "No connected cameras were found. Abort" << std::endl;
+		}
 		int status = faceRecognition.compare(username);
 		return status;
 	} else if (vm.count("add")) {
@@ -71,6 +74,9 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 		face_recognition faceRecognition(settings);
+		if (faceRecognition.get_camera_count() == 0) {
+			std::cout << "No connected cameras were found. Abort" << std::endl;
+		}
 		faceRecognition.add(username);
 	} else if (vm.count("clear")) {
 		if (euid != 0) {

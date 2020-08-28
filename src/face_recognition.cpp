@@ -1,4 +1,5 @@
 #include <cereal/archives/binary.hpp>
+#include <filesystem>
 #include "User.h"
 #include "face_recognition.h"
 
@@ -8,15 +9,10 @@ face_recognition::face_recognition(const nlohmann::json &settings) : faceRecogni
 
 	this->settings = settings;
 
-	darkness = new Darkness(settings["dark_threshold"]);
-
 	dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
 
-	if (settings["auto_find_camera"]) {
-		capture = new cv::VideoCapture(cv::CAP_V4L);
-	} else {
-		capture = new cv::VideoCapture(settings["camera_index"].get<int>(), cv::CAP_V4L);
-	}
+	prepare_record();
+
 }
 
 int face_recognition::add(const std::string &username) {
@@ -51,7 +47,10 @@ int face_recognition::add(const std::string &username) {
 		camera_record();
 	}
 
-	capture->release();
+	for (auto & record : records) {
+		record.camera->release();
+	}
+
 	std::cout << "Analyzing..." << std::endl;
 
 	for (auto &s: snapshots) {
@@ -158,7 +157,7 @@ int face_recognition::compare(const std::string &username) {
 	double certainty_threshold = settings["certainty_threshold"];
 	double timeout = settings["timeout"];
 
-	snapshot s;
+	Snapshot s;
 
 	const auto time = std::chrono::system_clock::now();
 	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() <
@@ -196,7 +195,8 @@ int face_recognition::compare(const std::string &username) {
 	for (auto &fl: s.face_locations) {
 
 		s.face_landmark = shapePredictor(s.dlib_image, fl);
-		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, settings["compare_num_jitters"].get<int>());
+		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
+																		 settings["compare_num_jitters"].get<int>());
 
 		int i = 0;
 		for (auto &enc: user.user_encodings) {
@@ -211,7 +211,8 @@ int face_recognition::compare(const std::string &username) {
 				if (settings["confirmation"].get<bool>()) {
 					std::cout << '\r' << "Identified face as " << username << "          " << std::endl;
 					std::cout << "Wining model id:" << user.user_encodings[best_certainty_index].id
-							  << ", label:\"" << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold << ")" << "          " << std::endl;
+							  << ", label:\"" << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold << ")"
+							  << "          " << std::endl;
 				}
 				return PAM_SUCCESS;
 			}
@@ -224,7 +225,7 @@ int face_recognition::compare(const std::string &username) {
 	return PAM_SYSTEM_ERR;
 }
 
-void face_recognition::test() {
+/*void face_recognition::test() {
 
 	cv::namedWindow("Webcam");
 
@@ -237,12 +238,12 @@ void face_recognition::test() {
 
 		if (cv::waitKey(50) == 27) break;
 	}
-}
+}*/
 
 void face_recognition::camera_record() {
-	snapshot snapshot;
-	*capture >> snapshot;
-	snapshots.push_back(snapshot);
+	for (auto & record : records) {
+		record.record();
+	}
 }
 
 double face_recognition::euclidean_distance(dlib::matrix<double> matrix) {
@@ -255,6 +256,31 @@ double face_recognition::euclidean_distance(dlib::matrix<double> matrix) {
 
 	return sqrt(sum);
 
+}
+
+void face_recognition::prepare_record() {
+
+	std::vector<std::string> list;
+	if (settings["auto_find_camera"]) {
+		std::string path = "/dev";
+		for (const auto &entry:std::filesystem::directory_iterator(path)) {
+			if (entry.path().string().find("/dev/video") != std::string::npos) {
+				list.push_back(entry.path().string());
+			}
+		}
+	} else {
+		list = settings["camera_path"].get<std::vector<std::string>>();
+	}
+
+	for (auto &i : list) {
+		cv::VideoCapture camera(i, cv::CAP_V4L2);
+		if (camera.isOpened()) {
+
+			Record new_record(i, settings["dark_threshold"]);
+
+			records.push_back(new_record);
+		}
+	}
 }
 
 /*int face_recognition::camera_record() {

@@ -13,7 +13,7 @@
 //TODO: Find better name for this structs and their variables
 struct Encoding {
 
-	int camera_index;
+	std::string camera_path;
 	dlib::matrix<double, 128, 1> data;
 
 	template<class Archive>
@@ -23,13 +23,13 @@ struct Encoding {
 		for (int i = 0; i < data.nr(); i++) {
 			tmp.push_back(data(i, 0));
 		}
-		archive(CEREAL_NVP(camera_index), CEREAL_NVP(tmp));
+		archive(CEREAL_NVP(camera_path), CEREAL_NVP(tmp));
 	}
 
 	template<class Archive>
 	void load(Archive &archive) {
 		std::vector<double> tmp;
-		archive(CEREAL_NVP(camera_index), CEREAL_NVP(tmp));
+		archive(CEREAL_NVP(camera_path), CEREAL_NVP(tmp));
 		for (int i = 0; i < data.nr(); i++) {
 			data(i, 0) = tmp[i];
 		}

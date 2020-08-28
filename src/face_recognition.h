@@ -16,17 +16,15 @@
 #include <security/pam_modules.h>
 
 #include "face_recognition_model_v1.h"
-#include "snapshot.h"
+#include "Snapshot.h"
 #include "darkness.h"
+#include "Record.h"
 
 class face_recognition {
 
-	cv::VideoCapture *capture;
-	Darkness *darkness;
+	std::vector<Record> records;
 
 	nlohmann::json settings;
-
-	std::vector<snapshot> snapshots;
 
 	dlib::frontal_face_detector faceDetector = dlib::get_frontal_face_detector();
 	dlib::shape_predictor shapePredictor;
@@ -35,6 +33,8 @@ class face_recognition {
 	bool continue_camera_record{};
 
 	static double euclidean_distance(dlib::matrix<double> matrix);
+
+	void prepare_record();
 
 public:
 	explicit face_recognition(const nlohmann::json &settings);
@@ -46,6 +46,10 @@ public:
 	void camera_record();
 
 	void test();
+
+	int get_camera_count(){
+		return records.size();
+	}
 };
 
 

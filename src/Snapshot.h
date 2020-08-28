@@ -11,7 +11,7 @@
 #include <dlib/image_processing/full_object_detection.h>
 #include <opencv2/videoio.hpp>
 
-class snapshot {
+class Snapshot {
 
 public:
 
@@ -26,7 +26,7 @@ public:
 
 	void convert_image();
 
-	friend cv::VideoCapture &operator>>(cv::VideoCapture &input, snapshot &s);
+	friend cv::VideoCapture &operator>>(cv::VideoCapture &input, Snapshot &s);
 
 };
 

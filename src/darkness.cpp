@@ -6,7 +6,7 @@ Darkness::Darkness(double dark_threshold) {
 	this->dark_threshold = dark_threshold;
 }
 
-bool Darkness::darkness_check(const snapshot &s) {
+bool Darkness::darkness_check(const Snapshot &s) {
 	cv::Mat gs_frame, clahe_frame, hist;
 
 	cv::cvtColor(s.opencv_image, gs_frame, cv::COLOR_BGR2GRAY);

@@ -4,7 +4,7 @@
 
 #include <opencv2/core/cvstd_wrapper.hpp>
 #include <opencv2/imgproc.hpp>
-#include "snapshot.h"
+#include "Snapshot.h"
 
 const static cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2, cv::Size(8, 8));
 
@@ -17,7 +17,7 @@ public:
 
 	explicit Darkness(double dark_threshold);
 
-	bool darkness_check(const snapshot &s);
+	bool darkness_check(const Snapshot &s);
 
 	[[nodiscard]] int getBlackTries() const;
 

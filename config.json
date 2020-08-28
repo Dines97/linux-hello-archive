@@ -10,11 +10,11 @@
   "ignore_ssh": false,
   "add_timeout": 3,
   "number_of_threads": 8,
-  "auto_find_camera": false,
-  "camera_index": 0,
+  "auto_find_camera": true,
+  "camera_path": ["dev/video0", "dev/video2"],
   "suppress_unknown": true,
   "auto_find_editor": false,
   "editor": "gedit",
-  "add_num_jitters" : 10,
-  "compare_num_jitters" : 3
+  "add_num_jitters" : 1,
+  "compare_num_jitters" : 1
 }
