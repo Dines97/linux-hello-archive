@@ -4,7 +4,6 @@
 #include <nlohmann/json.hpp>
 #include <boost/program_options.hpp>
 #include <cereal/archives/binary.hpp>
-#include <z3.h>
 
 #include "face_recognition.h"
 #include "User.h"
