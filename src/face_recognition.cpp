@@ -17,6 +17,11 @@ face_recognition::face_recognition(const nlohmann::json &settings) : faceRecogni
 	} else {
 		capture = new cv::VideoCapture(settings["camera_index"].get<int>(), cv::CAP_V4L);
 	}
+
+	if(!capture->isOpened()){
+		std::cout<<"Couldn't open camera. Aborting"<<std::endl;
+		abort();
+	}
 }
 
 int face_recognition::add(const std::string &username) {

@@ -9,9 +9,6 @@
 #include "User.h"
 
 void sigabrt(int signum) {
-	std::cout << "Abort!!!" << std::endl;
-	std::cout << "signum: " << signum << std::endl;
-
 	exit(PAM_AUTH_ERR);
 }
 
