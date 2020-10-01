@@ -1,4 +1,4 @@
-###TODO
+### TODO
 - [ ] Multiple camera support
 - [X] Add .clang-format to project 
 - [ ] Add .clang-tidy to project
@@ -10,5 +10,3 @@
 - [ ] Add language pack support
 - [ ] Replace the command line arguments with more reasonable ones.
 - [ ] Somehow use https://github.com/umlaeute/v4l2loopback
-
-
