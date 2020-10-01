@@ -1,10 +1,9 @@
 #include "darkness.h"
+
 #include <opencv2/core/cvstd_wrapper.hpp>
 #include <opencv2/imgproc.hpp>
 
-Darkness::Darkness(double dark_threshold) {
-	this->dark_threshold = dark_threshold;
-}
+Darkness::Darkness(double dark_threshold) { this->dark_threshold = dark_threshold; }
 
 bool Darkness::darkness_check(const snapshot &s) {
 	cv::Mat gs_frame, clahe_frame, hist;
@@ -39,22 +38,12 @@ bool Darkness::darkness_check(const snapshot &s) {
 	return true;
 }
 
-int Darkness::getBlackTries() const {
-	return black_tries;
-}
+int Darkness::getBlackTries() const { return black_tries; }
 
-int Darkness::getValidFrames() const {
-	return valid_frames;
-}
+int Darkness::getValidFrames() const { return valid_frames; }
 
-int Darkness::getDarkTries() const {
-	return dark_tries;
-}
+int Darkness::getDarkTries() const { return dark_tries; }
 
-double Darkness::getDarkRunningTotal() const {
-	return dark_running_total;
-}
+double Darkness::getDarkRunningTotal() const { return dark_running_total; }
 
-double Darkness::getDarkThreshold() const {
-	return dark_threshold;
-}
+double Darkness::getDarkThreshold() const { return dark_threshold; }

@@ -1,11 +1,12 @@
-#include <cereal/archives/binary.hpp>
-#include "User.h"
 #include "face_recognition.h"
 
-//TODO: Rethink variable name in all project especially in this file
-face_recognition::face_recognition(const nlohmann::json &settings) : faceRecognitionModelV1(
-		"/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
+#include <cereal/archives/binary.hpp>
 
+#include "User.h"
+
+// TODO: Rethink variable name in all project especially in this file
+face_recognition::face_recognition(const nlohmann::json &settings)
+	: faceRecognitionModelV1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
 	this->settings = settings;
 
 	darkness = new Darkness(settings["dark_threshold"]);
@@ -18,14 +19,13 @@ face_recognition::face_recognition(const nlohmann::json &settings) : faceRecogni
 		capture = new cv::VideoCapture(settings["camera_index"].get<int>(), cv::CAP_V4L);
 	}
 
-	if(!capture->isOpened()){
-		std::cout<<"Couldn't open camera. Aborting"<<std::endl;
+	if (!capture->isOpened()) {
+		std::cout << "Couldn't open camera. Aborting" << std::endl;
 		abort();
 	}
 }
 
 int face_recognition::add(const std::string &username) {
-
 	std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
 	std::fstream f_models;
 	f_models.open(model_name, std::ios::in);
@@ -48,7 +48,7 @@ int face_recognition::add(const std::string &username) {
 	std::streamsize pp = std::cout.precision();
 	std::cout << std::setprecision(1) << "Please look straight into the camera for " << timeout << " seconds"
 			  << std::setprecision(pp) << std::endl;
-	sleep((unsigned int) 2);
+	sleep((unsigned int)2);
 
 	const auto time = std::chrono::system_clock::now();
 	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() <
@@ -59,8 +59,7 @@ int face_recognition::add(const std::string &username) {
 	capture->release();
 	std::cout << "Analyzing..." << std::endl;
 
-	for (auto &s: snapshots) {
-
+	for (auto &s : snapshots) {
 		if (s.opencv_image.empty()) {
 			std::cout << "Empty" << std::endl;
 		}
@@ -86,15 +85,14 @@ int face_recognition::add(const std::string &username) {
 
 		total_face_encoding += s.face_encoding;
 		valid_encodings++;
-
 	}
 
 	if (!face_recognized) {
 		if (darkness->getValidFrames() == 0) {
 			std::cout << "Camera saw only black frames - is IR emitter working?" << std::endl;
 		} else if (darkness->getValidFrames() == darkness->getDarkTries()) {
-			std::cout << "All frames were too dark, please check dark_threshold in config" << std::endl <<
-					  "Average darkness: " << darkness->getDarkRunningTotal() / darkness->getValidFrames()
+			std::cout << "All frames were too dark, please check dark_threshold in config" << std::endl
+					  << "Average darkness: " << darkness->getDarkRunningTotal() / darkness->getValidFrames()
 					  << ", Threshold: " << darkness->getDarkThreshold();
 		} else {
 			std::cout << "No face detected, aborting" << std::endl;
@@ -119,7 +117,7 @@ int face_recognition::add(const std::string &username) {
 	user.user_name = username;
 	user.user_encodings.push_back(user_encoding);
 
-	//TODO: Check is flush required if close called after it
+	// TODO: Check is flush required if close called after it
 	f_models.flush();
 	f_models.close();
 	f_models.clear();
@@ -136,11 +134,9 @@ int face_recognition::add(const std::string &username) {
 	std::cout << "Scan complete. Added a new model to " << username << std::endl;
 
 	return 0;
-
 }
 
 int face_recognition::compare(const std::string &username) {
-
 	std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
 	std::ifstream input(model_name);
 	User user;
@@ -151,7 +147,8 @@ int face_recognition::compare(const std::string &username) {
 	}
 
 	if (input.bad() || user.user_encodings.empty()) {
-		std::cout << "No face model known" << std::endl << "Please add face model with:" << std::endl
+		std::cout << "No face model known" << std::endl
+				  << "Please add face model with:" << std::endl
 				  << "\tsudo linux-hello --add" << std::endl;
 		return PAM_USER_UNKNOWN;
 	}
@@ -168,7 +165,6 @@ int face_recognition::compare(const std::string &username) {
 	const auto time = std::chrono::system_clock::now();
 	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() <
 		   timeout * 1000) {
-
 		*capture >> s;
 
 		if (s.opencv_image.empty()) {
@@ -182,7 +178,6 @@ int face_recognition::compare(const std::string &username) {
 		s.face_locations = faceDetector(s.dlib_image);
 
 		if (!s.face_locations.empty()) break;
-
 	}
 
 	if (s.face_locations.empty() &&
@@ -198,13 +193,13 @@ int face_recognition::compare(const std::string &username) {
 	bool first = true;
 	int best_certainty_index;
 
-	for (auto &fl: s.face_locations) {
-
+	for (auto &fl : s.face_locations) {
 		s.face_landmark = shapePredictor(s.dlib_image, fl);
-		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark, settings["compare_num_jitters"].get<int>());
+		s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
+																		 settings["compare_num_jitters"].get<int>());
 
 		int i = 0;
-		for (auto &enc: user.user_encodings) {
+		for (auto &enc : user.user_encodings) {
 			double certainty = euclidean_distance(enc.encodings[0].data - s.face_encoding);
 			if (first || certainty < best_certainty) {
 				best_certainty = certainty;
@@ -215,8 +210,10 @@ int face_recognition::compare(const std::string &username) {
 			if (certainty_threshold > certainty) {
 				if (settings["confirmation"].get<bool>()) {
 					std::cout << '\r' << "Identified face as " << username << "          " << std::endl;
-					std::cout << "Wining model id:" << user.user_encodings[best_certainty_index].id
-							  << ", label:\"" << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold << ")" << "          " << std::endl;
+					std::cout << "Wining model id:" << user.user_encodings[best_certainty_index].id << ", label:\""
+							  << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold
+							  << ")"
+							  << "          " << std::endl;
 				}
 				return PAM_SUCCESS;
 			}
@@ -224,13 +221,13 @@ int face_recognition::compare(const std::string &username) {
 		}
 	}
 
-	std::cout << '\r' << "User face unrecognized (" << best_certainty << ">" << certainty_threshold << ")" << "          " << std::endl;
+	std::cout << '\r' << "User face unrecognized (" << best_certainty << ">" << certainty_threshold << ")"
+			  << "          " << std::endl;
 
 	return PAM_SYSTEM_ERR;
 }
 
 void face_recognition::test() {
-
 	cv::namedWindow("Webcam");
 
 	cv::Mat frame;
@@ -251,7 +248,6 @@ void face_recognition::camera_record() {
 }
 
 double face_recognition::euclidean_distance(dlib::matrix<double> matrix) {
-
 	double sum = 0;
 
 	for (int i = 0; i < matrix.nr(); i++) {
@@ -259,29 +255,27 @@ double face_recognition::euclidean_distance(dlib::matrix<double> matrix) {
 	}
 
 	return sqrt(sum);
-
 }
 
 /*int face_recognition::camera_record() {
 
-    camera_sanity();
+	camera_sanity();
 
-    while (continue_camera_record) {
-        snapshot snapshot;
-        *capture >> snapshot;
-        //snapshot.image_captured = true;
-        snapshots.push_back(snapshot);
-    }
+	while (continue_camera_record) {
+		snapshot snapshot;
+		*capture >> snapshot;
+		//snapshot.image_captured = true;
+		snapshots.push_back(snapshot);
+	}
 }*/
-
 
 /*int face_recognition::snapshot_process() {
 
 }*/
 
 /*int face_recognition::camera_sanity() {
-    if (capture->isOpened()) {
-        std::cerr << "ERROR! Unable to open camera\n";
-        return PAM_AUTHINFO_UNAVAIL;
-    }
+	if (capture->isOpened()) {
+		std::cerr << "ERROR! Unable to open camera\n";
+		return PAM_AUTHINFO_UNAVAIL;
+	}
 }*/

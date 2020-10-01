@@ -1,19 +1,17 @@
-#include <iostream>
-#include <csignal>
 #include <security/pam_modules.h>
-#include <nlohmann/json.hpp>
+
 #include <boost/program_options.hpp>
 #include <cereal/archives/binary.hpp>
+#include <csignal>
+#include <iostream>
+#include <nlohmann/json.hpp>
 
-#include "face_recognition.h"
 #include "User.h"
+#include "face_recognition.h"
 
-void sigabrt(int signum) {
-	exit(PAM_AUTH_ERR);
-}
+void sigabrt(int signum) { exit(PAM_AUTH_ERR); }
 
 int main(int argc, char *argv[]) {
-
 	std::cout << std::fixed;
 
 	signal(SIGABRT, sigabrt);
@@ -25,18 +23,19 @@ int main(int argc, char *argv[]) {
 
 	namespace po = boost::program_options;
 	po::options_description desc("Allowed options");
-	desc.add_options()
-			("init", "Download required data files")
-			("add", "Add a new face model for a user.")
-			("clear", "Remove all face models for a user.")
-			("config", "Open config file in text editor")
-			("enable", "Enable Linux Hello")
-			("disable", "Disable Linux Hello")
-			("list", "List all saved face models for a user.")
-			("remove", po::value<int>(), "Remove a specific model for a user.")
-			("test", "Test the camera")
-			("help", "Show this help message and exit.")
-			("compare", po::value<std::string>(), "Backend compare");
+
+	// clang-format off
+	desc.add_options()	("init", "Download required data files")
+						("add", "Add a new face model for a user.")
+						("clear", "Remove all face models for a user.")
+						("config", "Open config file in text editor")
+						("enable", "Enable Linux Hello")
+						("disable", "Disable Linux Hello")
+						("list", "List all saved face models for a user.")
+						("remove", po::value<int>(), "Remove a specific model for a user.")
+						("test", "Test the camera")("help", "Show this help message and exit.")
+						("compare", po::value<std::string>(), "Backend compare");
+	// clang-format on
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -137,10 +136,10 @@ int main(int argc, char *argv[]) {
 			std::cout << "Known face models for " << username << ":" << std::endl << std::endl;
 			std::cout << "\tID\tDate\t\t\t\tLabel" << std::endl;
 
-			for (auto m: user.user_encodings) {
+			for (auto m : user.user_encodings) {
 				long time = m.unix_time;
-				std::cout << "\t" << m.id << "\t" << std::put_time(std::localtime(&time), "%c") << "\t"
-						  << m.label << std::endl;
+				std::cout << "\t" << m.id << "\t" << std::put_time(std::localtime(&time), "%c") << "\t" << m.label
+						  << std::endl;
 			}
 			std::cout << std::endl;
 
@@ -173,7 +172,7 @@ int main(int argc, char *argv[]) {
 
 			int i = 0;
 			int id = vm["remove"].as<int>();
-			for (auto &m:user.user_encodings) {
+			for (auto &m : user.user_encodings) {
 				if (m.id == id) break;
 				i++;
 			}
@@ -201,5 +200,4 @@ int main(int argc, char *argv[]) {
 	} else {
 		std::cout << desc;
 	}
-
 }

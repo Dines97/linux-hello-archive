@@ -1,26 +1,21 @@
 #ifndef LINUXHELLO_FACE_RECOGNITION_H
 #define LINUXHELLO_FACE_RECOGNITION_H
 
-
-#include <chrono>
-#include <thread>
-#include <unistd.h>
-
-#include <opencv2/opencv.hpp>
-
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/opencv/cv_image.h>
-
-#include <nlohmann/json.hpp>
-
 #include <security/pam_modules.h>
+#include <unistd.h>
 
+#include <chrono>
+#include <nlohmann/json.hpp>
+#include <opencv2/opencv.hpp>
+#include <thread>
+
+#include "darkness.h"
 #include "face_recognition_model_v1.h"
 #include "snapshot.h"
-#include "darkness.h"
 
 class face_recognition {
-
 	cv::VideoCapture *capture;
 	Darkness *darkness;
 
@@ -36,7 +31,7 @@ class face_recognition {
 
 	static double euclidean_distance(dlib::matrix<double> matrix);
 
-public:
+   public:
 	explicit face_recognition(const nlohmann::json &settings);
 
 	int add(const std::string &username);
@@ -48,5 +43,4 @@ public:
 	void test();
 };
 
-
-#endif //LINUXHELLO_FACE_RECOGNITION_H
+#endif	// LINUXHELLO_FACE_RECOGNITION_H
