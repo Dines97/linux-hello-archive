@@ -25,16 +25,17 @@ int main(int argc, char *argv[]) {
     po::options_description desc("Allowed options");
 
     // clang-format off
-	desc.add_options()	("init", "Download required data files")
-						("add", "Add a new face model for a user.")
-						("clear", "Remove all face models for a user.")
-						("config", "Open config file in text editor")
-						("enable", "Enable Linux Hello")
-						("disable", "Disable Linux Hello")
-						("list", "List all saved face models for a user.")
-						("remove", po::value<int>(), "Remove a specific model for a user.")
-						("test", "Test the camera")("help", "Show this help message and exit.")
-						("compare", po::value<std::string>(), "Backend compare");
+    desc.add_options()("init", "Download required data files")
+                      ("add", "Add a new face model for a user.")
+                      ("clear", "Remove all face models for a user.")
+                      ("config", "Open config file in text editor")
+                      ("enable", "Enable Linux Hello")
+                      ("disable", "Disable Linux Hello")
+                      ("list", "List all saved face models for a user.")
+                      ("remove", po::value<int>(), "Remove a specific model for a user.")
+                      ("test", "Test the camera")
+                      ("help", "Show this help message and exit.")
+                      ("compare", po::value<std::string>(), "Backend compare");
     // clang-format on
 
     po::variables_map vm;
