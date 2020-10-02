@@ -16,31 +16,31 @@
 #include "snapshot.h"
 
 class face_recognition {
-	cv::VideoCapture *capture;
-	Darkness *darkness;
+    cv::VideoCapture *capture;
+    Darkness *darkness;
 
-	nlohmann::json settings;
+    nlohmann::json settings;
 
-	std::vector<snapshot> snapshots;
+    std::vector<snapshot> snapshots;
 
-	dlib::frontal_face_detector faceDetector = dlib::get_frontal_face_detector();
-	dlib::shape_predictor shapePredictor;
-	face_recognition_model_v1 faceRecognitionModelV1;
+    dlib::frontal_face_detector faceDetector = dlib::get_frontal_face_detector();
+    dlib::shape_predictor shapePredictor;
+    face_recognition_model_v1 faceRecognitionModelV1;
 
-	bool continue_camera_record{};
+    bool continue_camera_record{};
 
-	static double euclidean_distance(dlib::matrix<double> matrix);
+    static double euclidean_distance(dlib::matrix<double> matrix);
 
    public:
-	explicit face_recognition(const nlohmann::json &settings);
+    explicit face_recognition(const nlohmann::json &settings);
 
-	int add(const std::string &username);
+    int add(const std::string &username);
 
-	int compare(const std::string &username);
+    int compare(const std::string &username);
 
-	void camera_record();
+    void camera_record();
 
-	void test();
+    void test();
 };
 
-#endif	// LINUXHELLO_FACE_RECOGNITION_H
+#endif  // LINUXHELLO_FACE_RECOGNITION_H

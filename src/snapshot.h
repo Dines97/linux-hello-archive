@@ -14,18 +14,18 @@
 
 class snapshot {
    public:
-	std::vector<dlib::rectangle> face_locations;
-	dlib::rectangle face_location;
+    std::vector<dlib::rectangle> face_locations;
+    dlib::rectangle face_location;
 
-	cv::Mat opencv_image;
+    cv::Mat opencv_image;
 
-	dlib::matrix<dlib::rgb_pixel> dlib_image;
-	dlib::matrix<double> face_encoding;
-	dlib::full_object_detection face_landmark;
+    dlib::matrix<dlib::rgb_pixel> dlib_image;
+    dlib::matrix<double> face_encoding;
+    dlib::full_object_detection face_landmark;
 
-	void convert_image();
+    void convert_image();
 
-	friend cv::VideoCapture &operator>>(cv::VideoCapture &input, snapshot &s);
+    friend cv::VideoCapture &operator>>(cv::VideoCapture &input, snapshot &s);
 };
 
-#endif	// LINUXHELLO_SNAPSHOT_H
+#endif  // LINUXHELLO_SNAPSHOT_H

@@ -6,36 +6,36 @@
 Darkness::Darkness(double dark_threshold) { this->dark_threshold = dark_threshold; }
 
 bool Darkness::darkness_check(const snapshot &s) {
-	cv::Mat gs_frame, clahe_frame, hist;
+    cv::Mat gs_frame, clahe_frame, hist;
 
-	cv::cvtColor(s.opencv_image, gs_frame, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(s.opencv_image, gs_frame, cv::COLOR_BGR2GRAY);
 
-	clahe->apply(gs_frame, clahe_frame);
+    clahe->apply(gs_frame, clahe_frame);
 
-	int hist_size = 8;
-	float range[] = {0, 256};
-	const float *hist_range = {range};
-	bool uniform = true, accumulate = false;
+    int hist_size = 8;
+    float range[] = {0, 256};
+    const float *hist_range = {range};
+    bool uniform = true, accumulate = false;
 
-	cv::calcHist(&clahe_frame, 1, nullptr, cv::Mat(), hist, 1, &hist_size, &hist_range, uniform, accumulate);
+    cv::calcHist(&clahe_frame, 1, nullptr, cv::Mat(), hist, 1, &hist_size, &hist_range, uniform, accumulate);
 
-	double hist_total = cv::sum(hist)[0];
-	double darkness = hist.at<float>(0) / hist_total * 100;
+    double hist_total = cv::sum(hist)[0];
+    double darkness = hist.at<float>(0) / hist_total * 100;
 
-	if (hist_total == 0 || darkness == 100) {
-		black_tries++;
-		return false;
-	}
+    if (hist_total == 0 || darkness == 100) {
+        black_tries++;
+        return false;
+    }
 
-	dark_running_total += darkness;
-	valid_frames++;
+    dark_running_total += darkness;
+    valid_frames++;
 
-	if (darkness > dark_threshold) {
-		dark_tries++;
-		return false;
-	}
+    if (darkness > dark_threshold) {
+        dark_tries++;
+        return false;
+    }
 
-	return true;
+    return true;
 }
 
 int Darkness::getBlackTries() const { return black_tries; }
