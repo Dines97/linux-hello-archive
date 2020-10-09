@@ -21,7 +21,10 @@ set(CMAKE_SHARED_MODULE_PREFIX "")
 add_library(pam_linux_hello MODULE src/pam_main.cpp)
 target_link_libraries(pam_linux_hello pam)
 
-add_executable(linux-hello src/main.cpp src/face_recognition.h src/face_recognition_model_v1.h src/snapshot.h src/darkness.h src/darkness.cpp src/face_recognition_model_v1.cpp src/snapshot.cpp src/face_recognition.cpp src/User.h)
+add_executable(linux-hello src/main.cpp src/face_recognition.h src/face_recognition_model_v1.h src/snapshot.h src/darkness.h src/darkness.cpp
+        src/face_recognition_model_v1.cpp src/snapshot.cpp src/face_recognition.cpp src/User.h src/command_line/App.cpp src/command_line/App.h
+        src/command_line/sub_command.cpp src/command_line/sub_command.h src/command_line/flag.cpp src/command_line/flag.h
+        src/command_line/positional_argument.cpp src/command_line/positional_argument.h src/command_line/value.cpp src/command_line/value.h)
 target_link_libraries(linux-hello pam ${OpenCV_LIBS} dlib::dlib Boost::program_options)
 
 install(TARGETS pam_linux_hello DESTINATION /lib/x86_64-linux-gnu/security/)

@@ -7,11 +7,36 @@
 #include <nlohmann/json.hpp>
 
 #include "User.h"
+#include "command_line/App.h"
 #include "face_recognition.h"
 
 void sigabrt(int signum) { exit(PAM_AUTH_ERR); }
 
+void test_function() { std::cout << "Test3" << std::endl; }
+
 int main(int argc, char *argv[]) {
+    // test_function2(test_function);
+
+    // void (*func)(void);
+    // func = test_function;
+
+    App app;
+    app.add_sub_command(sub_command()
+                            .synonym("compare")
+                            .function(test_function)
+                            .id("COMPARE")
+                            .positional(positional_argument().position(1).id("NAME").required(true)));
+
+    app.parse(argc, argv);
+
+    if (app.sub_command_matches("COMPARE")) {
+        std::cout << "Match found" << std::endl;
+        std::cout << app.get("NAME").getstring() << std::endl;
+
+    } else {
+        std::cout << "Match not found" << std::endl;
+    }
+
     std::cout << std::fixed;
 
     signal(SIGABRT, sigabrt);
