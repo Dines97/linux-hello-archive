@@ -35,9 +35,11 @@ int main(int argc, char *argv[]) {
     app.require_subcommand(1, 1);
 
     int id;
+    std::string label;
     CLI::App *remove = app.add_subcommand("remove", "Remove a specific model for a user.");
-    remove->add_option("id", id, "Model id.")->check(CLI::NonNegativeNumber)->required();
-    remove->validate_positionals();
+    remove->add_option("-i,--id", id, "Model id.")->check(CLI::NonNegativeNumber)->type_name("<Model id>");
+    remove->add_option("-l,--label", label, "Model label")->type_name("<Model label>");
+    remove->require_option(1, 1);
 
     CLI11_PARSE(app, argc, argv);
 
@@ -169,10 +171,14 @@ int main(int argc, char *argv[]) {
             f_models.clear();
             f_models.open(models_file_name, std::ios::out | std::ios::trunc);
 
-            int i = 0;
+            std::size_t i = 0;
             for (auto &m : user.user_encodings) {
-                if (m.id == id) break;
+                if (m.id == id || m.label == label) break;
                 i++;
+            }
+            if (i == user.user_encodings.size()) {
+                std::cout << "Could not find the model with the specified id or label." << std::endl;
+                return 0;
             }
             user.user_encodings.erase(user.user_encodings.begin() + i);
 
