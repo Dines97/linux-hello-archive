@@ -1,11 +1,11 @@
 #include <security/pam_modules.h>
 
-#include <boost/program_options.hpp>
 #include <cereal/archives/binary.hpp>
 #include <csignal>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
+#include "../include/CLI11.hpp"
 #include "User.h"
 #include "face_recognition.h"
 
@@ -21,26 +21,25 @@ int main(int argc, char *argv[]) {
         username = std::string(getenv("SUDO_USER"));
     }
 
-    namespace po = boost::program_options;
-    po::options_description desc("Allowed options");
+    CLI::App app{"Linux Hello provides Windows Hello™ style authentication for Linux."};
+    app.add_option("-u,--user", username, "Specifies the user name to use.")->type_name("<User name>");
+    app.add_subcommand("init", "Download required data files.");
+    app.add_subcommand("add", "Add a new face model for a user.");
+    app.add_subcommand("clear", "Remove all face models for a user.");
+    app.add_subcommand("config", "Open config file in text editor.");
+    app.add_subcommand("enable", "Enable Linux Hello.");
+    app.add_subcommand("disable", "Disable Linux Hello.");
+    app.add_subcommand("list", "List all saved face models for a user.");
+    app.add_subcommand("test", "Test the camera.");
+    app.add_subcommand("compare", "Backend compare.")->group("");
+    app.require_subcommand(1, 1);
 
-    // clang-format off
-    desc.add_options()("init", "Download required data files")
-                      ("add", "Add a new face model for a user.")
-                      ("clear", "Remove all face models for a user.")
-                      ("config", "Open config file in text editor")
-                      ("enable", "Enable Linux Hello")
-                      ("disable", "Disable Linux Hello")
-                      ("list", "List all saved face models for a user.")
-                      ("remove", po::value<int>(), "Remove a specific model for a user.")
-                      ("test", "Test the camera")
-                      ("help", "Show this help message and exit.")
-                      ("compare", po::value<std::string>(), "Backend compare");
-    // clang-format on
+    int id;
+    CLI::App *remove = app.add_subcommand("remove", "Remove a specific model for a user.");
+    remove->add_option("id", id, "Model id.")->check(CLI::NonNegativeNumber)->required();
+    remove->validate_positionals();
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+    CLI11_PARSE(app, argc, argv);
 
     std::ifstream f_setting("/etc/linux-hello/config.json");
     nlohmann::json settings;
@@ -49,10 +48,9 @@ int main(int argc, char *argv[]) {
 
     auto euid = geteuid();
 
-    if (vm.count("compare")) {
-        std::string username;
-        username = vm["compare"].as<std::string>();
+    std::string sub_cmd = app.get_subcommands()[0]->get_name();
 
+    if (sub_cmd == "compare") {
         if (settings["disabled"]) {
             std::cout << "Linux Hello disabled" << std::endl;
             return PAM_AUTHINFO_UNAVAIL;
@@ -61,28 +59,28 @@ int main(int argc, char *argv[]) {
         face_recognition faceRecognition(settings);
         int status = faceRecognition.compare(username);
         return status;
-    } else if (vm.count("add")) {
+    } else if (sub_cmd == "add") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
         face_recognition faceRecognition(settings);
         faceRecognition.add(username);
-    } else if (vm.count("clear")) {
+    } else if (sub_cmd == "clear") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
         std::string model_file_name = "/etc/linux-hello/models/" + username + ".dat";
         std::remove(model_file_name.c_str());
-    } else if (vm.count("config")) {
+    } else if (sub_cmd == "config") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
         std::string editor = settings["editor"].get<std::string>() + " /etc/linux-hello/config.json";
         int status = system(editor.c_str());
-    } else if (vm.count("enable")) {
+    } else if (sub_cmd == "enable") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
@@ -97,7 +95,7 @@ int main(int argc, char *argv[]) {
 
         std::cout << "Linux Hello has been enabled" << std::endl;
 
-    } else if (vm.count("disable")) {
+    } else if (sub_cmd == "disable") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
@@ -112,7 +110,7 @@ int main(int argc, char *argv[]) {
 
         std::cout << "Linux Hello has been disabled" << std::endl;
 
-    } else if (vm.count("list")) {
+    } else if (sub_cmd == "list") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
@@ -150,7 +148,7 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-    } else if (vm.count("remove")) {
+    } else if (sub_cmd == "remove") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
@@ -172,7 +170,6 @@ int main(int argc, char *argv[]) {
             f_models.open(models_file_name, std::ios::out | std::ios::trunc);
 
             int i = 0;
-            int id = vm["remove"].as<int>();
             for (auto &m : user.user_encodings) {
                 if (m.id == id) break;
                 i++;
@@ -187,18 +184,14 @@ int main(int argc, char *argv[]) {
             f_models.flush();
             f_models.close();
         }
-    } else if (vm.count("test")) {
+    } else if (sub_cmd == "test") {
         face_recognition faceRecognition(settings);
         faceRecognition.test();
-    } else if (vm.count("help")) {
-        std::cout << desc;
-    } else if (vm.count("init")) {
+    } else if (sub_cmd == "init") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
         system("bash /etc/linux-hello/data/install.sh");
-    } else {
-        std::cout << desc;
     }
 }

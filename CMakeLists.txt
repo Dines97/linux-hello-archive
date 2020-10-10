@@ -15,14 +15,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 find_package(PAM REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options)
 
 set(CMAKE_SHARED_MODULE_PREFIX "")
 add_library(pam_linux_hello MODULE src/pam_main.cpp)
 target_link_libraries(pam_linux_hello pam)
 
-add_executable(linux-hello src/main.cpp src/face_recognition.h src/face_recognition_model_v1.h src/snapshot.h src/darkness.h src/darkness.cpp src/face_recognition_model_v1.cpp src/snapshot.cpp src/face_recognition.cpp src/User.h)
-target_link_libraries(linux-hello pam ${OpenCV_LIBS} dlib::dlib Boost::program_options)
+#It must be wrong to add sources in this way. But this is my first CMake project so I'm still learning.
+add_executable(linux-hello src/main.cpp src/face_recognition.h src/face_recognition_model_v1.h src/snapshot.h src/darkness.h src/darkness.cpp src/face_recognition_model_v1.cpp src/snapshot.cpp src/face_recognition.cpp src/User.h include/CLI11.hpp)
+target_link_libraries(linux-hello pam ${OpenCV_LIBS} dlib::dlib)
 
 install(TARGETS pam_linux_hello DESTINATION /lib/x86_64-linux-gnu/security/)
 install(FILES linux_hello DESTINATION /usr/share/pam-configs/)

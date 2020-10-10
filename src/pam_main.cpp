@@ -22,7 +22,7 @@ int auth(pam_handle_t *pamh, int flags, int argc, const char **argv) {
     pam_get_item(pamh, PAM_SERVICE, &vp_service);
     const char *service = (char *)vp_service;
 
-    std::string command = "linux-hello --compare " + std::string(username);
+    std::string command = "linux-hello -u " + std::string(username) + " compare";
     int status;
 
     if (!strcmp(service, "sudo")) {
