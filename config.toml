@@ -1,0 +1,57 @@
+# Linux Hello config file
+# Press CTRL + X to save in the nano editor
+
+# Notice user about face recognition
+detection_notice = true
+
+# Notice user about recognition performance
+confirmation = true
+
+# Disable Linux Hello if lid is closed
+ignore_closed_lid = true
+
+# Disable Linux Hello PAM module
+# The linux-hello command will still function
+# TODO: Change enable-disable behaviour from system wide to user
+disabled = false
+
+# Use CNN instead of HOG
+# CNN model is much more accurate than the HOG based model, but takes much more
+# computational power to run, and is meant to be executed on a GPU to attain reasonable speed.
+use_cnn = false
+
+# The certainty of the detected face belonging to the user of the account
+# Recognition model trained again 0.6 value
+certainty_threshold = 0.45
+
+# The number of seconds to search before timing out
+timeout = 1
+
+# Higher number probably increase saved model quality.
+add_timeout = 3
+
+# Disable Linux Hello in remote shells
+ignore_ssh = false
+
+# Number of CPU threads to use during face recognition (currently unused)
+number_of_threads = 8
+
+# Auto find camera. Currently just auto set camera to 0
+# TODO: Actually auto find IR camera
+auto_find_camera = false
+
+# Camera index to use
+# TODO: Add absolut path support.
+# TODO: Add multiple camera support
+# TODO: Change default to 0 (2 only for development used)
+camera_index = 2
+
+# Preferred editor for editing this file
+editor = "nano"
+
+# Higher number probably increase saved model quality.
+add_num_jitters = 1
+
+# Higher numbers probably increase live model quality. (Higher number = slower recognition)
+compare_num_jitters = 1
+

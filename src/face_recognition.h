@@ -7,10 +7,10 @@
 #include <unistd.h>
 
 #include <chrono>
-#include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
 
+#include "../include/cpptoml.h"
 #include "darkness.h"
 #include "face_recognition_model_v1.h"
 #include "snapshot.h"
@@ -19,7 +19,7 @@ class face_recognition {
     cv::VideoCapture *capture;
     Darkness *darkness;
 
-    nlohmann::json settings;
+    std::shared_ptr<cpptoml::table> settings;
 
     std::vector<snapshot> snapshots;
 
@@ -32,7 +32,7 @@ class face_recognition {
     static double euclidean_distance(dlib::matrix<double> matrix);
 
    public:
-    explicit face_recognition(const nlohmann::json &settings);
+    explicit face_recognition(const std::shared_ptr<cpptoml::table> &settings);
 
     int add(const std::string &username);
 

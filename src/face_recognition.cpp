@@ -5,18 +5,18 @@
 #include "User.h"
 
 // TODO: Rethink variable name in all project especially in this file
-face_recognition::face_recognition(const nlohmann::json &settings)
+face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings)
     : faceRecognitionModelV1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
     this->settings = settings;
 
-    darkness = new Darkness(settings["dark_threshold"]);
+    darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
 
     dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
 
-    if (settings["auto_find_camera"]) {
+    if (settings->get_as<bool>("auto_find_camera").value_or(true)) {
         capture = new cv::VideoCapture(cv::CAP_V4L);
     } else {
-        capture = new cv::VideoCapture(settings["camera_index"].get<int>(), cv::CAP_V4L);
+        capture = new cv::VideoCapture(settings->get_as<int>("camera_index").value_or(0), cv::CAP_V4L);
     }
 
     if (!capture->isOpened()) {
@@ -41,7 +41,7 @@ int face_recognition::add(const std::string &username) {
     std::cin >> label;
 
     int valid_encodings = 0;
-    double timeout = settings["add_timeout"];
+    double timeout = settings->get_as<double>("add_timeout").value_or(3);
     bool face_recognized = false;
     dlib::matrix<double> total_face_encoding;
 
@@ -81,7 +81,7 @@ int face_recognition::add(const std::string &username) {
         s.face_location = s.face_locations[0];
         s.face_landmark = shapePredictor(s.dlib_image, s.face_location);
         s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
-                                                                         settings["add_num_jitters"].get<int>());
+                                                                         settings->get_as<double>("add_num_jitters").value_or(1));
 
         total_face_encoding += s.face_encoding;
         valid_encodings++;
@@ -105,7 +105,7 @@ int face_recognition::add(const std::string &username) {
     total_face_encoding /= valid_encodings;
 
     Encoding encoding;
-    encoding.camera_index = settings["camera_index"];
+    encoding.camera_index = settings->get_as<int>("camera_index").value_or(0);
     encoding.data = total_face_encoding;
 
     UserEncoding user_encoding;
@@ -153,12 +153,12 @@ int face_recognition::compare(const std::string &username) {
         return PAM_USER_UNKNOWN;
     }
 
-    if (settings["detection_notice"]) {
+    if (settings->get_as<double>("detection_notice").value_or(false)) {
         std::cout << "Attempting face detection" << std::flush;
     }
 
-    double certainty_threshold = settings["certainty_threshold"];
-    double timeout = settings["timeout"];
+    double certainty_threshold = settings->get_as<double>("certainty_threshold").value_or(0.45);
+    double timeout = settings->get_as<double>("timeout").value_or(1);
 
     snapshot s;
 
@@ -183,7 +183,7 @@ int face_recognition::compare(const std::string &username) {
     if (s.face_locations.empty() &&
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() >
          timeout * 1000)) {
-        if (settings["detection_notice"])
+        if (settings->get_as<double>("detection_notice").value_or(false))
             std::cout << '\r' << "Exceeded the time limit for face recognition         " << std::endl;
 
         return PAM_AUTH_ERR;
@@ -196,7 +196,7 @@ int face_recognition::compare(const std::string &username) {
     for (auto &fl : s.face_locations) {
         s.face_landmark = shapePredictor(s.dlib_image, fl);
         s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
-                                                                         settings["compare_num_jitters"].get<int>());
+                                                                         settings->get_as<double>("compare_num_jitters").value_or(1));
 
         int i = 0;
         for (auto &enc : user.user_encodings) {
@@ -208,7 +208,7 @@ int face_recognition::compare(const std::string &username) {
             }
 
             if (certainty_threshold > certainty) {
-                if (settings["confirmation"].get<bool>()) {
+                if (settings->get_as<double>("confirmation").value_or(true)) {
                     std::cout << '\r' << "Identified face as " << username << "          " << std::endl;
                     std::cout << "Wining model id:" << user.user_encodings[best_certainty_index].id << ", label:\""
                               << user.user_encodings[i].label << "\" (" << certainty << " < " << certainty_threshold

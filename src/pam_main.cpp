@@ -2,9 +2,9 @@
 #include <security/pam_modules.h>
 
 #include <csignal>
+#include <cstring>
 #include <fstream>
 #include <iostream>
-#include <nlohmann/json.hpp>
 
 #include "syslog.h"
 

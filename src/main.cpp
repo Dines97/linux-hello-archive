@@ -3,9 +3,9 @@
 #include <cereal/archives/binary.hpp>
 #include <csignal>
 #include <iostream>
-#include <nlohmann/json.hpp>
 
 #include "../include/CLI11.hpp"
+#include "../include/cpptoml.h"
 #include "User.h"
 #include "face_recognition.h"
 
@@ -27,8 +27,11 @@ int main(int argc, char *argv[]) {
     app.add_subcommand("add", "Add a new face model for a user.");
     app.add_subcommand("clear", "Remove all face models for a user.");
     app.add_subcommand("config", "Open config file in text editor.");
-    app.add_subcommand("enable", "Enable Linux Hello.");
-    app.add_subcommand("disable", "Disable Linux Hello.");
+
+    // TODO: Change enable disable command behaviour
+    //app.add_subcommand("enable", "Enable Linux Hello.");
+    //app.add_subcommand("disable", "Disable Linux Hello.");
+
     app.add_subcommand("list", "List all saved face models for a user.");
     app.add_subcommand("test", "Test the camera.");
     app.add_subcommand("compare", "Backend compare.")->group("");
@@ -43,22 +46,20 @@ int main(int argc, char *argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    std::ifstream f_setting("/etc/linux-hello/config.json");
-    nlohmann::json settings;
-    f_setting >> settings;
-    f_setting.close();
+    // TODO; Find or create better configuration library
+    auto config = cpptoml::parse_file("/etc/linux-hello/config.toml");
 
     auto euid = geteuid();
 
     std::string sub_cmd = app.get_subcommands()[0]->get_name();
 
     if (sub_cmd == "compare") {
-        if (settings["disabled"]) {
+        if (config->get_as<bool>("disabled").value_or(true)) {
             std::cout << "Linux Hello disabled" << std::endl;
             return PAM_AUTHINFO_UNAVAIL;
         }
 
-        face_recognition faceRecognition(settings);
+        face_recognition faceRecognition(config);
         int status = faceRecognition.compare(username);
         return status;
     } else if (sub_cmd == "add") {
@@ -66,7 +67,7 @@ int main(int argc, char *argv[]) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
-        face_recognition faceRecognition(settings);
+        face_recognition faceRecognition(config);
         faceRecognition.add(username);
     } else if (sub_cmd == "clear") {
         if (euid != 0) {
@@ -80,7 +81,7 @@ int main(int argc, char *argv[]) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
-        std::string editor = settings["editor"].get<std::string>() + " /etc/linux-hello/config.json";
+        std::string editor = config->get_as<std::string>("editor").value_or("nano") + " /etc/linux-hello/config.toml";
         int status = system(editor.c_str());
     } else if (sub_cmd == "enable") {
         if (euid != 0) {
@@ -88,10 +89,11 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        settings["disabled"] = false;
+        config->insert("disabled", false);
 
-        std::ofstream f_output("/etc/linux-hello/config.json");
-        f_output << std::setw(4) << settings;
+        std::ofstream f_output("/etc/linux-hello/config.toml");
+        f_output << (*config);
+        std::cout << (*config);
         f_output.flush();
         f_output.close();
 
@@ -103,10 +105,10 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        settings["disabled"] = true;
+        config->insert("disabled", true);
 
-        std::ofstream f_output("/etc/linux-hello/config.json");
-        f_output << std::setw(4) << settings;
+        std::ofstream f_output("/etc/linux-hello/config.toml");
+        f_output << std::setw(4) << config;
         f_output.flush();
         f_output.close();
 
@@ -191,7 +193,7 @@ int main(int argc, char *argv[]) {
             f_models.close();
         }
     } else if (sub_cmd == "test") {
-        face_recognition faceRecognition(settings);
+        face_recognition faceRecognition(config);
         faceRecognition.test();
     } else if (sub_cmd == "init") {
         if (euid != 0) {

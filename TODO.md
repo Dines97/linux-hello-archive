@@ -5,8 +5,9 @@
 - [ ] Implement IPC
   - [ ] Separate program to client-server for faster recognition 
 - [ ] Somehow tweak existing dlib algorithm for better recognition OR
-- [ ] Find better face recognition algorithm
+- [ ] Find better face recognition algorithm OR
+- [ ] Actually use depth info from IR camera for better face recognition
 - [ ] Integrate with exist desktop environments 
 - [ ] Add language pack support
-- [ ] Replace the command line arguments with more reasonable ones.
+- [X] Replace the command line arguments with more reasonable ones.
 - [ ] Somehow use https://github.com/umlaeute/v4l2loopback
