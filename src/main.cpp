@@ -8,10 +8,19 @@
 #include "../include/cpptoml.h"
 #include "User.h"
 #include "face_recognition.h"
+#include "timings.h"
+
 
 void sigabrt(int signum) { exit(PAM_AUTH_ERR); }
 
 int main(int argc, char *argv[]) {
+
+
+    timings timing = timings::instance();
+
+    timing.add_record("Program start");
+
+
     std::cout << std::fixed;
 
     signal(SIGABRT, sigabrt);
@@ -21,8 +30,12 @@ int main(int argc, char *argv[]) {
         username = std::string(getenv("SUDO_USER"));
     }
 
+
+    bool verbose;
+
     CLI::App app{"Linux Hello provides Windows Hello™ style authentication for Linux."};
     app.add_option("-u,--user", username, "Specifies the user name to use.")->type_name("<User name>");
+    app.add_option("-v,--verbose", verbose, "Display verbose info");
     app.add_subcommand("init", "Download required data files.");
     app.add_subcommand("add", "Add a new face model for a user.");
     app.add_subcommand("clear", "Remove all face models for a user.");

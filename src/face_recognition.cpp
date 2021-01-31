@@ -1,8 +1,10 @@
 #include "face_recognition.h"
 
 #include <cereal/archives/binary.hpp>
+#include <vector>
 
 #include "User.h"
+#include "timings.h"
 
 // TODO: Rethink variable name in all project especially in this file
 face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings)
@@ -228,6 +230,23 @@ int face_recognition::compare(const std::string &username) {
 }
 
 void face_recognition::test() {
+    
+    timings timing = timings::instance();
+
+    std::vector<record*> *records = timing.get_all_record();
+
+    std::cout<<records->size()<<std::endl;
+
+    for(record *r:*records){
+        std::cout<<r->get_name()<<std::endl;
+    }
+
+    record *record = timing.get_record("Program start");
+    record->finish();
+
+    timing.print();
+
+
     cv::namedWindow("Webcam");
 
     cv::Mat frame;
