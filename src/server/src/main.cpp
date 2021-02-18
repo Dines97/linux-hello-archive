@@ -4,21 +4,20 @@
 #include <csignal>
 #include <iostream>
 
-#include "../include/CLI11.hpp"
-#include "../include/cpptoml.h"
+#include "../../../include/CLI11.hpp"
+#include "../../../include/cpptoml.h"
+#include "timings/timings.h"
 #include "User.h"
 #include "face_recognition.h"
-#include "timings.h"
-
 
 void sigabrt(int signum) { exit(PAM_AUTH_ERR); }
 
 int main(int argc, char *argv[]) {
 
 
-    timings timing = timings::instance();
+    timings *timing = timings::instance();
 
-    timing.add_record("Program start");
+    timing->add_record("Program start");
 
 
     std::cout << std::fixed;
@@ -206,7 +205,9 @@ int main(int argc, char *argv[]) {
             f_models.close();
         }
     } else if (sub_cmd == "test") {
+        timing->add_record("Face recognition init");
         face_recognition faceRecognition(config);
+        timing->get_record("Face recognition init")->finish();
         faceRecognition.test();
     } else if (sub_cmd == "init") {
         if (euid != 0) {
@@ -215,4 +216,6 @@ int main(int argc, char *argv[]) {
         }
         system("bash /etc/linux-hello/data/install.sh");
     }
+
+    timing->print();
 }

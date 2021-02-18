@@ -10,7 +10,7 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 
-#include "../include/cpptoml.h"
+#include "../../../include/cpptoml.h"
 #include "darkness.h"
 #include "face_recognition_model_v1.h"
 #include "snapshot.h"
@@ -23,9 +23,9 @@ class face_recognition {
 
     std::vector<snapshot> snapshots;
 
-    dlib::frontal_face_detector faceDetector = dlib::get_frontal_face_detector();
+    dlib::frontal_face_detector faceDetector;
     dlib::shape_predictor shapePredictor;
-    face_recognition_model_v1 faceRecognitionModelV1;
+    face_recognition_model_v1 *faceRecognitionModelV1;
 
     bool continue_camera_record{};
 

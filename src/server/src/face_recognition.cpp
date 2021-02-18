@@ -4,22 +4,40 @@
 #include <vector>
 
 #include "User.h"
-#include "timings.h"
+#include "timings/timings.h"
 
 // TODO: Rethink variable name in all project especially in this file
-face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings)
-    : faceRecognitionModelV1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
+face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings) {
     this->settings = settings;
+
+    timings *timing = timings::instance();
+
+    timing->add_record("Face detector");
+    faceDetector = dlib::get_frontal_face_detector();
+    timing->get_record("Face detector")->finish();
+
+    timing->add_record("Shape predictor");
+    dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
+    timing->get_record("Shape predictor")->finish();
+
+    timing->add_record("Face recognition");
+    faceRecognitionModelV1 =
+        new face_recognition_model_v1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
+    timing->get_record("Face recognition")->finish();
+
+
 
     darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
 
-    dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
+    record *record = timing->add_record("Camera start");
 
     if (settings->get_as<bool>("auto_find_camera").value_or(true)) {
         capture = new cv::VideoCapture(cv::CAP_V4L);
     } else {
         capture = new cv::VideoCapture(settings->get_as<int>("camera_index").value_or(0), cv::CAP_V4L);
     }
+
+    record->finish();
 
     if (!capture->isOpened()) {
         std::cout << "Couldn't open camera. Aborting" << std::endl;
@@ -82,8 +100,8 @@ int face_recognition::add(const std::string &username) {
 
         s.face_location = s.face_locations[0];
         s.face_landmark = shapePredictor(s.dlib_image, s.face_location);
-        s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
-                                                                         settings->get_as<double>("add_num_jitters").value_or(1));
+        s.face_encoding = faceRecognitionModelV1->compute_face_descriptor(
+            s.dlib_image, s.face_landmark, settings->get_as<double>("add_num_jitters").value_or(1));
 
         total_face_encoding += s.face_encoding;
         valid_encodings++;
@@ -178,6 +196,7 @@ int face_recognition::compare(const std::string &username) {
         s.convert_image();
 
         s.face_locations = faceDetector(s.dlib_image);
+   timings *timing = timings::instance();
 
         if (!s.face_locations.empty()) break;
     }
@@ -197,8 +216,8 @@ int face_recognition::compare(const std::string &username) {
 
     for (auto &fl : s.face_locations) {
         s.face_landmark = shapePredictor(s.dlib_image, fl);
-        s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
-                                                                         settings->get_as<double>("compare_num_jitters").value_or(1));
+        s.face_encoding = faceRecognitionModelV1->compute_face_descriptor(
+            s.dlib_image, s.face_landmark, settings->get_as<double>("compare_num_jitters").value_or(1));
 
         int i = 0;
         for (auto &enc : user.user_encodings) {
@@ -230,22 +249,10 @@ int face_recognition::compare(const std::string &username) {
 }
 
 void face_recognition::test() {
-    
-    timings timing = timings::instance();
+    timings *timing = timings::instance();
 
-    std::vector<record*> *records = timing.get_all_record();
-
-    std::cout<<records->size()<<std::endl;
-
-    for(record *r:*records){
-        std::cout<<r->get_name()<<std::endl;
-    }
-
-    record *record = timing.get_record("Program start");
+    record *record = timing->get_record("Program start");
     record->finish();
-
-    timing.print();
-
 
     cv::namedWindow("Webcam");
 
