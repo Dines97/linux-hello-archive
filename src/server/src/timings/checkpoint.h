@@ -10,16 +10,10 @@
 typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_var;
 
 class checkpoint {
-
-
    public:
-
     checkpoint() = delete;
 
     enum checkpoint_type { start, progress, finish };
-
-
-
 
     std::string name;
     time_var time;

@@ -4,32 +4,31 @@
 #include <vector>
 
 #include "User.h"
-#include "timings/timings.h"
+#include "timings/record.h"
 
 // TODO: Rethink variable name in all project especially in this file
 face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings) {
+    record *master_record = record::instance();
+    record *face_recognition_init = master_record->add_subrecord("Face recognition init");
+
     this->settings = settings;
 
-    timings *timing = timings::instance();
-
-    timing->add_record("Face detector");
+    face_recognition_init->add_subrecord("Face detector");
     faceDetector = dlib::get_frontal_face_detector();
-    timing->get_record("Face detector")->finish();
+    face_recognition_init->get_subrecord("Face detector")->finish();
 
-    timing->add_record("Shape predictor");
+    face_recognition_init->add_subrecord("Shape predictor");
     dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
-    timing->get_record("Shape predictor")->finish();
+    face_recognition_init->get_subrecord("Shape predictor")->finish();
 
-    timing->add_record("Face recognition");
+    face_recognition_init->add_subrecord("Face recognition");
     faceRecognitionModelV1 =
         new face_recognition_model_v1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
-    timing->get_record("Face recognition")->finish();
-
-
+    face_recognition_init->get_subrecord("Face recognition")->finish();
 
     darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
 
-    record *record = timing->add_record("Camera start");
+    face_recognition_init->add_subrecord("Camera start");
 
     if (settings->get_as<bool>("auto_find_camera").value_or(true)) {
         capture = new cv::VideoCapture(cv::CAP_V4L);
@@ -37,12 +36,14 @@ face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settin
         capture = new cv::VideoCapture(settings->get_as<int>("camera_index").value_or(0), cv::CAP_V4L);
     }
 
-    record->finish();
+    face_recognition_init->get_subrecord("Camera start")->finish();
 
     if (!capture->isOpened()) {
         std::cout << "Couldn't open camera. Aborting" << std::endl;
         abort();
     }
+
+    face_recognition_init->finish();
 }
 
 int face_recognition::add(const std::string &username) {
@@ -157,6 +158,9 @@ int face_recognition::add(const std::string &username) {
 }
 
 int face_recognition::compare(const std::string &username) {
+    record *master_record = record::instance();
+    record *model_loading = master_record->add_subrecord("Model loading");
+
     std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
     std::ifstream input(model_name);
     User user;
@@ -165,6 +169,8 @@ int face_recognition::compare(const std::string &username) {
         cereal::BinaryInputArchive cereal_input(input);
         cereal_input(CEREAL_NVP(user));
     }
+
+    model_loading->finish();
 
     if (input.bad() || user.user_encodings.empty()) {
         std::cout << "No face model known" << std::endl
@@ -182,6 +188,9 @@ int face_recognition::compare(const std::string &username) {
 
     snapshot s;
 
+    record *face_recognition = master_record->add_subrecord("Face recognition");
+    record *camera_record = face_recognition->add_subrecord("Camera record");
+
     const auto time = std::chrono::system_clock::now();
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() <
            timeout * 1000) {
@@ -196,10 +205,12 @@ int face_recognition::compare(const std::string &username) {
         s.convert_image();
 
         s.face_locations = faceDetector(s.dlib_image);
-   timings *timing = timings::instance();
 
         if (!s.face_locations.empty()) break;
     }
+
+    camera_record->finish();
+    record *recognition = face_recognition->add_subrecord("Recognition");
 
     if (s.face_locations.empty() &&
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - time).count() >
@@ -236,6 +247,9 @@ int face_recognition::compare(const std::string &username) {
                               << ")"
                               << "          " << std::endl;
                 }
+
+                recognition->finish();
+
                 return PAM_SUCCESS;
             }
             i++;
@@ -249,11 +263,6 @@ int face_recognition::compare(const std::string &username) {
 }
 
 void face_recognition::test() {
-    timings *timing = timings::instance();
-
-    record *record = timing->get_record("Program start");
-    record->finish();
-
     cv::namedWindow("Webcam");
 
     cv::Mat frame;

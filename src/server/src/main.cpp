@@ -6,19 +6,14 @@
 
 #include "../../../include/CLI11.hpp"
 #include "../../../include/cpptoml.h"
-#include "timings/timings.h"
 #include "User.h"
 #include "face_recognition.h"
+#include "timings/record.h"
 
 void sigabrt(int signum) { exit(PAM_AUTH_ERR); }
 
 int main(int argc, char *argv[]) {
-
-
-    timings *timing = timings::instance();
-
-    timing->add_record("Program start");
-
+    record *record = record::instance();
 
     std::cout << std::fixed;
 
@@ -65,40 +60,42 @@ int main(int argc, char *argv[]) {
 
     std::string sub_cmd = app.get_subcommands()[0]->get_name();
 
+    int status_code;
+
     if (sub_cmd == "compare") {
         if (config->get_as<bool>("disabled").value_or(true)) {
             std::cout << "Linux Hello disabled" << std::endl;
-            return PAM_AUTHINFO_UNAVAIL;
+            status_code = PAM_AUTHINFO_UNAVAIL;
         }
 
         face_recognition faceRecognition(config);
-        int status = faceRecognition.compare(username);
-        return status;
+        status_code = faceRecognition.compare(username);
+
     } else if (sub_cmd == "add") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
         face_recognition faceRecognition(config);
         faceRecognition.add(username);
     } else if (sub_cmd == "clear") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
         std::string model_file_name = "/etc/linux-hello/models/" + username + ".dat";
         std::remove(model_file_name.c_str());
     } else if (sub_cmd == "config") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
         std::string editor = config->get_as<std::string>("editor").value_or("nano") + " /etc/linux-hello/config.toml";
         int status = system(editor.c_str());
     } else if (sub_cmd == "enable") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
 
         config->insert("disabled", false);
@@ -114,7 +111,7 @@ int main(int argc, char *argv[]) {
     } else if (sub_cmd == "disable") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
 
         config->insert("disabled", true);
@@ -129,7 +126,7 @@ int main(int argc, char *argv[]) {
     } else if (sub_cmd == "list") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
 
         std::string models_file_name = "/etc/linux-hello/models/" + username + ".dat";
@@ -145,7 +142,7 @@ int main(int argc, char *argv[]) {
             if (user.user_encodings.empty()) {
                 std::cout << "No face model known for the user " << username << " please run:" << std::endl;
                 std::cout << "\tsudo howdy --add" << std::endl;
-                return 0;
+                status_code = 0;
             }
 
             std::cout << "Known face models for " << username << ":" << std::endl << std::endl;
@@ -161,13 +158,13 @@ int main(int argc, char *argv[]) {
         } else {
             std::cout << "No face model known for the user " << username << " please run:" << std::endl;
             std::cout << "\tsudo howdy --add" << std::endl;
-            return 0;
+            status_code = 0;
         }
 
     } else if (sub_cmd == "remove") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
 
         std::string models_file_name = "/etc/linux-hello/models/" + username + ".dat";
@@ -192,7 +189,7 @@ int main(int argc, char *argv[]) {
             }
             if (i == user.user_encodings.size()) {
                 std::cout << "Could not find the model with the specified id or label." << std::endl;
-                return 0;
+                status_code = 0;
             }
             user.user_encodings.erase(user.user_encodings.begin() + i);
 
@@ -205,17 +202,18 @@ int main(int argc, char *argv[]) {
             f_models.close();
         }
     } else if (sub_cmd == "test") {
-        timing->add_record("Face recognition init");
         face_recognition faceRecognition(config);
-        timing->get_record("Face recognition init")->finish();
         faceRecognition.test();
     } else if (sub_cmd == "init") {
         if (euid != 0) {
             std::cout << "Please run this command as root" << std::endl;
-            return 1;
+            status_code = 1;
         }
         system("bash /etc/linux-hello/data/install.sh");
     }
 
-    timing->print();
+    record->finish();
+    record->print(2);
+
+    return status_code;
 }
