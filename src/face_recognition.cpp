@@ -3,11 +3,19 @@
 #include <cereal/archives/binary.hpp>
 
 #include "User.h"
+#include "processing.h"
+
+#include "thread"
 
 // TODO: Rethink variable name in all project especially in this file
 face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settings)
     : faceRecognitionModelV1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat") {
-    this->settings = settings;
+
+    processing main_processing(settings);
+
+    std::this_thread::sleep_for(std::chrono::seconds(60));
+
+    /*this->settings = settings;
 
     darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
 
@@ -22,7 +30,7 @@ face_recognition::face_recognition(const std::shared_ptr<cpptoml::table> &settin
     if (!capture->isOpened()) {
         std::cout << "Couldn't open camera. Aborting" << std::endl;
         abort();
-    }
+    }*/
 }
 
 int face_recognition::add(const std::string &username) {
@@ -80,8 +88,8 @@ int face_recognition::add(const std::string &username) {
 
         s.face_location = s.face_locations[0];
         s.face_landmark = shapePredictor(s.dlib_image, s.face_location);
-        s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(s.dlib_image, s.face_landmark,
-                                                                         settings->get_as<double>("add_num_jitters").value_or(1));
+        s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(
+            s.dlib_image, s.face_landmark, settings->get_as<double>("add_num_jitters").value_or(1));
 
         total_face_encoding += s.face_encoding;
         valid_encodings++;

@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -pthread")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_RELEASE} -pthread")
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -21,7 +24,23 @@ add_library(pam_linux_hello MODULE src/pam_main.cpp)
 target_link_libraries(pam_linux_hello pam)
 
 #It must be wrong to add sources in this way. But this is my first CMake project so I'm still learning.
-add_executable(linux-hello src/main.cpp src/face_recognition.h src/face_recognition_model_v1.h src/snapshot.h src/darkness.h src/darkness.cpp src/face_recognition_model_v1.cpp src/snapshot.cpp src/face_recognition.cpp src/User.h include/CLI11.hpp include/cpptoml.h)
+add_executable(linux-hello
+        src/main.cpp
+        src/face_recognition.h
+        src/face_recognition.cpp
+        src/face_recognition_model_v1.h
+        src/face_recognition_model_v1.cpp
+        src/snapshot.h
+        src/snapshot.cpp
+        src/darkness.h
+        src/darkness.cpp
+        src/User.h
+        include/CLI11.hpp
+        include/cpptoml.h
+
+        src/synchronized_queue.h
+        src/processing.cpp
+        src/processing.h)
 target_link_libraries(linux-hello pam ${OpenCV_LIBS} dlib::dlib)
 
 install(TARGETS pam_linux_hello DESTINATION /lib/x86_64-linux-gnu/security/)

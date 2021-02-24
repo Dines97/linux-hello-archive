@@ -29,8 +29,6 @@ class face_recognition {
 
     bool continue_camera_record{};
 
-    static double euclidean_distance(dlib::matrix<double> matrix);
-
    public:
     explicit face_recognition(const std::shared_ptr<cpptoml::table> &settings);
 
@@ -41,6 +39,8 @@ class face_recognition {
     void camera_record();
 
     void test();
+
+    static double euclidean_distance(dlib::matrix<double> matrix);
 };
 
 #endif  // LINUXHELLO_FACE_RECOGNITION_H
