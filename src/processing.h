@@ -25,9 +25,16 @@ class processing {
 
     void start_face_recognition();
 
+    dlib::frontal_face_detector faceDetector;
+    dlib::shape_predictor shapePredictor;
+    face_recognition_model_v1 faceRecognitionModelV1;
+
+
    public:
 
     explicit processing(const std::shared_ptr<cpptoml::table> &settings);
+
+    static void set_priority(std::thread &th, int priority);
 
 };
 

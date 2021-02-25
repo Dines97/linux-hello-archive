@@ -13,9 +13,32 @@ processing::processing(const std::shared_ptr<cpptoml::table> &settings) {
 
     std::thread processing_thread(&processing::start_image_process, this);
 
+    faceDetector = dlib::get_frontal_face_detector();
+
+    dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
+
+    faceRecognitionModelV1 =
+        face_recognition_model_v1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
+
     std::thread face_recognition(&processing::start_face_recognition, this);
 
-    std::this_thread::sleep_for(std::chrono::minutes(60));
+    sched_param sch_params{};
+
+    set_priority(recording_thread, 3);
+    set_priority(processing_thread, 4);
+    set_priority(face_recognition, 5);
+
+    int test = SCHED_RR;
+
+    pthread_getschedparam(recording_thread.native_handle(), &test, &sch_params);
+
+    std::cout << "Thread prior" << sch_params.sched_priority << std::endl;
+
+    while (!stop_processing) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Video size: " << video.size() << " Processing: " << converted.size()
+                  << " Recognized: " << recognized.size() << std::endl;
+    }
 
     recording_thread.join();
     processing_thread.join();
@@ -23,31 +46,30 @@ processing::processing(const std::shared_ptr<cpptoml::table> &settings) {
 }
 
 void processing::start_camera_recording() {
-
-
     while (!stop_processing) {
-
+        // std::cout << "test" << std::endl;
 
         snapshot s;
         *video_capture >> s;
 
         video.enqueue(s);
 
-        s = video.wait_dequeue();
-
-
+        // std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     // std::this_thread::sleep_for(std::chrono::seconds (40));
 }
 
 void processing::start_image_process() {
+    // std::cout << "tes5" << std::endl;
 
     Darkness *darkness;
 
     darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
 
     while (!stop_processing) {
+        // std::cout << "test2" << std::endl;
+
         snapshot s = video.wait_dequeue();
 
         if (!darkness->darkness_check(s)) continue;
@@ -70,16 +92,11 @@ void processing::start_face_recognition() {
         cereal_input(CEREAL_NVP(user));
     }
 
-    dlib::frontal_face_detector faceDetector = dlib::get_frontal_face_detector();
-
-    dlib::shape_predictor shapePredictor;
-    dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
-
-    face_recognition_model_v1 faceRecognitionModelV1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
-
     double certainty_threshold = settings->get_as<double>("certainty_threshold").value_or(0.45);
 
     while (!stop_processing) {
+        std::cout << "test3" << std::endl;
+
         std::cout << "Recognition" << std::endl;
 
         snapshot s = converted.wait_dequeue();
@@ -96,9 +113,14 @@ void processing::start_face_recognition() {
                 if (certainty_threshold > certainty) {
                     std::cout << "Fuck it worked" << std::endl;
 
-                    stop_processing = true;
+                    recognized.enqueue(s);
                 }
             }
         }
     }
+}
+void processing::set_priority(std::thread &th, int priority) {
+    sched_param sch_param{.sched_priority = priority};
+
+    pthread_setschedparam(th.native_handle(), SCHED_RR, &sch_param);
 }
