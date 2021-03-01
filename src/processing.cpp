@@ -1,13 +1,15 @@
 #include "processing.h"
 
+#include <dlib/gui_widgets.h>
+#include <dlib/image_io.h>
+#include <dlib/image_processing/render_face_detections.h>
+
 #include <cereal/archives/binary.hpp>
+#include <utility>
 
-#include "User.h"
-
-processing::processing(const std::shared_ptr<cpptoml::table> &settings) {
+processing::processing(const std::shared_ptr<cpptoml::table> &settings, std::string user_name) {
     this->settings = settings;
-
-    video_capture = new cv::VideoCapture(2, cv::CAP_V4L);
+    this->user_name = std::move(user_name);
 
     std::thread recording_thread(&processing::start_camera_recording, this);
 
@@ -15,112 +17,138 @@ processing::processing(const std::shared_ptr<cpptoml::table> &settings) {
 
     faceDetector = dlib::get_frontal_face_detector();
 
-    dlib::deserialize("/etc/linux-hello/data/shape_predictor_5_face_landmarks.dat") >> shapePredictor;
+    std::thread face_detection(&processing::start_face_detection, this);
+
+    dlib::deserialize("/etc/linux-hello/data/shape_predictor_68_face_landmarks.dat") >> shapePredictor;
 
     faceRecognitionModelV1 =
-        face_recognition_model_v1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
+        new face_recognition_model_v1("/etc/linux-hello/data/dlib_face_recognition_resnet_model_v1.dat");
 
-    std::thread face_recognition(&processing::start_face_recognition, this);
-
-    sched_param sch_params{};
-
-    set_priority(recording_thread, 3);
-    set_priority(processing_thread, 4);
-    set_priority(face_recognition, 5);
-
-    int test = SCHED_RR;
-
-    pthread_getschedparam(recording_thread.native_handle(), &test, &sch_params);
-
-    std::cout << "Thread prior" << sch_params.sched_priority << std::endl;
-
-    while (!stop_processing) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cout << "Video size: " << video.size() << " Processing: " << converted.size()
-                  << " Recognized: " << recognized.size() << std::endl;
-    }
-
-    recording_thread.join();
-    processing_thread.join();
-    face_recognition.join();
-}
-
-void processing::start_camera_recording() {
-    while (!stop_processing) {
-        // std::cout << "test" << std::endl;
-
-        snapshot s;
-        *video_capture >> s;
-
-        video.enqueue(s);
-
-        // std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    // std::this_thread::sleep_for(std::chrono::seconds (40));
-}
-
-void processing::start_image_process() {
-    // std::cout << "tes5" << std::endl;
-
-    Darkness *darkness;
-
-    darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
-
-    while (!stop_processing) {
-        // std::cout << "test2" << std::endl;
-
-        snapshot s = video.wait_dequeue();
-
-        if (!darkness->darkness_check(s)) continue;
-
-        s.convert_image();
-
-        converted.enqueue(s);
-    }
-}
-
-void processing::start_face_recognition() {
-    std::string username = "denis";
-
-    std::string model_name = "/etc/linux-hello/models/" + username + ".dat";
+    std::string model_name = "/etc/linux-hello/models/" + this->user_name + ".dat";
     std::ifstream input(model_name);
-    User user;
 
     if (input.good()) {
         cereal::BinaryInputArchive cereal_input(input);
         cereal_input(CEREAL_NVP(user));
     }
 
-    double certainty_threshold = settings->get_as<double>("certainty_threshold").value_or(0.45);
+    std::thread face_recognition1(&processing::start_face_recognition, this);
+    std::thread face_recognition2(&processing::start_face_recognition, this);
+    std::thread face_recognition3(&processing::start_face_recognition, this);
+    std::thread face_recognition4(&processing::start_face_recognition, this);
+    std::thread face_recognition5(&processing::start_face_recognition, this);
+    std::thread face_recognition6(&processing::start_face_recognition, this);
+
+    std::thread test(&processing::test, this);
 
     while (!stop_processing) {
-        std::cout << "test3" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Video size: " << video.size() << " Processing: " << converted.size()
+                  << " Detected: " << detected.size() << " Recognized: " << recognized.size() << std::endl;
+    }
 
-        std::cout << "Recognition" << std::endl;
+    recording_thread.join();
+    processing_thread.join();
+    face_detection.join();
+    face_recognition1.join();
+    face_recognition2.join();
+    face_recognition3.join();
+    face_recognition4.join();
+    face_recognition5.join();
+    face_recognition6.join();
+    test.join();
+}
 
-        snapshot s = converted.wait_dequeue();
+void processing::start_camera_recording() {
+    cv::VideoCapture *video_capture;
 
-        s.face_locations = faceDetector(s.dlib_image);
+    if (settings->get_as<bool>("auto_find_camera").value_or(true)) {
+        video_capture = new cv::VideoCapture(cv::CAP_V4L);
+    } else {
+        video_capture = new cv::VideoCapture(settings->get_as<int>("camera_index").value_or(0), cv::CAP_V4L);
+    }
 
-        for (auto &fl : s.face_locations) {
-            s.face_landmark = shapePredictor(s.dlib_image, fl);
-            s.face_encoding = faceRecognitionModelV1.compute_face_descriptor(
-                s.dlib_image, s.face_landmark, settings->get_as<double>("compare_num_jitters").value_or(1));
-            for (auto &enc : user.user_encodings) {
-                double certainty = face_recognition::euclidean_distance(enc.encodings[0].data - s.face_encoding);
+    if (!video_capture->isOpened()) {
+        std::cout << "Couldn't open camera. Aborting" << std::endl;
+        abort();
+    }
 
-                if (certainty_threshold > certainty) {
-                    std::cout << "Fuck it worked" << std::endl;
+    while (!stop_processing) {
+        auto *s = new snapshot;
+        *video_capture >> *s;
 
-                    recognized.enqueue(s);
-                }
-            }
+        video.enqueue(s);
+    }
+}
+
+void processing::start_image_process() {
+
+    auto *darkness = new Darkness(settings->get_as<double>("dark_threshold").value_or(50));
+
+    while (!stop_processing) {
+        snapshot *s = video.wait_dequeue();
+
+        if (!darkness->darkness_check(*s)) continue;
+
+        s->convert_image();
+
+        converted.enqueue(s);
+    }
+}
+
+void processing::start_face_detection() {
+    while (!stop_processing) {
+        snapshot *s = converted.wait_dequeue();
+        s->face_locations = faceDetector(s->dlib_image);
+        detected.enqueue(s);
+    }
+}
+
+void processing::start_face_recognition() {
+
+    while (!stop_processing) {
+        snapshot *s = detected.wait_dequeue();
+
+        for (auto &fl : s->face_locations) {
+            s->face_landmark = shapePredictor(s->dlib_image, fl);
+            s->face_encoding = faceRecognitionModelV1->compute_face_descriptor(
+                s->dlib_image, s->face_landmark, settings->get_as<double>("compare_num_jitters").value_or(1));
+
+            recognized.enqueue(s);
         }
     }
 }
-void processing::set_priority(std::thread &th, int priority) {
-    sched_param sch_param{.sched_priority = priority};
 
-    pthread_setschedparam(th.native_handle(), SCHED_RR, &sch_param);
+void processing::test() {
+    dlib::image_window win;
+
+    while (!stop_processing) {
+        snapshot *s = debug.wait_dequeue();
+
+        win.clear_overlay();
+        win.set_image(s->dlib_image);
+
+        if (s->face_landmark.num_parts() == 5 || s->face_landmark.num_parts() == 68)
+            win.add_overlay(render_face_detections(s->face_landmark));
+
+        win.add_overlay(s->face_locations, dlib::rgb_pixel(255, 0, 0));
+    }
+}
+
+int processing::get_status() {
+    std::unique_lock<std::mutex> lock(status_mutex);
+
+    status_cv.wait(lock, [this] { return this->status_ready; });
+
+    return status;
+}
+
+double processing::euclidean_distance(dlib::matrix<double> matrix) {
+    double sum = 0;
+
+    for (int i = 0; i < matrix.nr(); i++) {
+        sum += pow(matrix(i, 0), 2);
+    }
+
+    return sqrt(sum);
 }

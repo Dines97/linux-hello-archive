@@ -7,8 +7,8 @@
 
 template <class T>
 class synchronized_queue {
-    std::queue<T> my_queue;
-    std::mutex my_mutex;
+    std::queue<T> _queue;
+    std::mutex _mutex;
     std::condition_variable cv;
 
     size_t s = 0;
@@ -28,25 +28,25 @@ synchronized_queue<T>::synchronized_queue() = default;
 
 template <class T>
 void synchronized_queue<T>::enqueue(T& t) {
-    std::unique_lock<std::mutex> lock(my_mutex);
+    std::unique_lock<std::mutex> lock(_mutex);
 
-    this->my_queue.push(t);
+    this->_queue.push(t);
     this->s++;
 
     cv.notify_all();
-
 }
 
 template <class T>
 T synchronized_queue<T>::wait_dequeue() {
-    std::unique_lock<std::mutex> lock(my_mutex);
+    std::unique_lock<std::mutex> lock(_mutex);
 
-    cv.wait(lock, [this] { return this->s >= 1; });
+    cv.wait(lock, [this] { return this->size() >= 1; });
 
-    T t = this->my_queue.front();
-    this->my_queue.pop();
+    T t = this->_queue.front();
+    this->_queue.pop();
     this->s--;
 
+    cv.notify_all();
 
     return t;
 }

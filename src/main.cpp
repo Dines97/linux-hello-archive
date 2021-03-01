@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
             return PAM_AUTHINFO_UNAVAIL;
         }
 
-        face_recognition faceRecognition(config);
+        face_recognition faceRecognition(config, username);
         int status = faceRecognition.compare(username);
         return status;
     } else if (sub_cmd == "add") {
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
             std::cout << "Please run this command as root" << std::endl;
             return 1;
         }
-        face_recognition faceRecognition(config);
+        face_recognition faceRecognition(config, username);
         faceRecognition.add(username);
     } else if (sub_cmd == "clear") {
         if (euid != 0) {
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
             f_models.close();
         }
     } else if (sub_cmd == "test") {
-        face_recognition faceRecognition(config);
+        face_recognition faceRecognition(config, username);
         faceRecognition.test();
     } else if (sub_cmd == "init") {
         if (euid != 0) {
