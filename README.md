@@ -1,4 +1,4 @@
-# Linux Hello
+# WIP: Linux Hello :WIP
 
 Linux Hello provides facial recognition based authentication for Linux. Use your built-in IR emitters and camera to prove who you are. 
 
