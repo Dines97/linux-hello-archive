@@ -23,9 +23,16 @@ Using the central authentication system (PAM), this works everywhere you would o
 ```
 sudo apt install g++ libpam0g-dev libopencv-dev libdlib-dev libboost-program-options-dev nlohmann-json3-dev libatlas-base-dev libsqlite3-dev libcereal-dev
 ```
-#### Arch
+#### Arch, Artix, Manjaro, etc.
+First, install the dependencies on the official repo.
 ```
-
+Sudo pacman -Sy gcc cmake pam opencv cereal
+```
+Then, install the dlib AUR package.
+```
+git clone https://aur.archlinux.org/dlib.git
+cd dlib
+makepkg -si
 ```
 #### openSUSE
 ```
