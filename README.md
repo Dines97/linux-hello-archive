@@ -40,7 +40,7 @@ makepkg -si
 ```
 #### Fedora
 ```
-
+sudo dnf -y install make cmake gcc gcc-c++ pam pam-devel opencv-devel dlib-devel
 ```
 ### Compilation
 ```
